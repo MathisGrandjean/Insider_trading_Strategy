@@ -2,7 +2,7 @@
 
 The strategy classifies corporate insiders (Officers and Directors) as "routine" or "opportunistic" based on whether they trade in the same calendar month every year, following Cohen, Malloy and Pomorski (2012): routine insiders trade on a predictable schedule and are assumed to carry little information, while opportunistic insiders trade at irregular times and are assumed more likely to act on private information. For each month, tickers with at least one opportunistic buy (or sell) filing within a given lookback window are grouped into an equal-weighted long portfolio, tested against a value-weighted S&P 500 benchmark. The idea is simple: if opportunistic insider buying (selling) carries information, the resulting portfolio should show a positive (negative) forward return beyond what the benchmark already captures.
 
-## Results
+## Data
 
 ### Universe overview
 
@@ -31,44 +31,29 @@ Number of tickers with an active opportunistic signal each month; the sell signa
 
 *(Note: the two panels above are described only for the opportunistic signal, since that is the one this study evaluates — see next sections. Routine signals were computed but not carried into the selection protocol.)*
 
+## Results
 ---
 
 ### In-sample selection (2016-2019)
 
-
- IC	t_alpha	sharpe	n_months	alpha	beta	t_beta	signal	window (in month)
-0.45	0.05	1.24	27.00	0.00	1.13	13.21	opportunistic buy	1
-0.45	2.03	1.18	46.00	0.01	0.24	0.89	opportunistic buy	3
-0.14	1.51	0.96	47.00	0.01	0.32	1.22	opportunistic buy	6
--0.01	1.58	1.00	47.00	0.01	0.22	0.76	opportunistic buy	12
--0.10	2.08	1.27	48.00	0.01	0.24	1.00	opportunistic sell	1
-0.10	2.11	1.24	48.00	0.01	0.28	1.16	opportunistic sell	3
-0.35	2.12	1.24	48.00	0.01	0.29	1.27	opportunistic sell	6
-0.30	1.98	1.18	48.00	0.01	0.30	1.25	opportunistic sell	12
 <img width="1056" height="219" alt="image" src="https://github.com/user-attachments/assets/8ca4a999-bd21-4192-80ed-668b03030271" />
 
 Full table of all 8 configurations (2 signals × 4 windows: 1, 3, 6, 12 months), with IC, IC-IR, alpha, beta, t-statistics, Sharpe ratio, and number of months.
 
 ### Validation (2020-2021)
 
-IC	t_alpha	sharpe	n_months	alpha	beta	t_beta	signal	window (in month)
--0.36	-0.58	0.42	20.00	0.00	0.75	3.73	opportunistic buy	1
--0.43	0.27	0.84	24.00	0.00	0.58	4.43	opportunistic sell	6
 <img width="1064" height="75" alt="image" src="https://github.com/user-attachments/assets/6f1e093b-9443-45ae-a87e-7d61929322a0" />
 
-The two selected configurations re-evaluated untouched on the validation window.
+The two selected configurations re-evaluated untouched on the validation window. We keep buying and selling strategies with the highest information coefficent.
 
 ### Out-of-sample (2022-2026)
 
-ic_ir	t_alpha	sharpe	n_months	alpha	beta	t_beta	signal	window
--0.45	-1.17	0.14	41.00	-0.01	1.00	11.20	opportunistic buy	1
--0.40	-1.12	0.58	51.00	0.00	0.98	28.28	opportunistic sell	6
-<img width="784" height="75" alt="image" src="https://github.com/user-attachments/assets/f4d60cfd-8f0d-41a3-90ed-8bbdb25ab58f" />
+<img width="784" height="75" alt="image" src="https://github.com/user-attachments/assets/fdecbb12-ea81-40a0-98f9-9e3a54d4e69d" />
+
 
 
 The two selected configurations evaluated on data never used in selection.
 
-<img width="1857" height="849" alt="image" src="https://github.com/user-attachments/assets/971a8226-4105-45c2-91da-f7ab484d0976" />
 
 <img width="1855" height="849" alt="image" src="https://github.com/user-attachments/assets/116967ea-724b-41e5-aada-3ccb03dc3304" />
 
@@ -77,15 +62,21 @@ The two selected configurations evaluated on data never used in selection.
 Deflated Sharpe Ratio (n_trials = 8, accounting for sample length and return skew/kurtosis):
 - Opportunistic sell: DSR = 0.38
 
-**[One paragraph interpreting whether OOS performance is consistent in sign and magnitude with IS, and whether the DSR indicates the observed Sharpe is distinguishable from selection noise.]**
+## Interpretation
+
+Both selected configurations fail the walk-forward test. In-sample, opportunistic sell (window = 6 months) looks attractive: IC = 0.35, t(alpha) = 2.12, Sharpe = 1.24. In validation the IC flips sign to -0.43 and stays negative out-of-sample (IC-IR = -0.40). Opportunistic buy shows the same pattern (IC = 0.45 in-sample, then -0.36 and -0.45). An immediate sign reversal like this is a stronger warning than a simple decline — it points to an in-sample fit driven by noise rather than a real, if weak, effect.
+
+Out-of-sample, neither alpha is significant (t-alpha of -1.17 and -1.12), while beta is close to 1 for both portfolios (1.00 and 0.98, highly significant) — the strategies mostly replicate market exposure, with no distinguishable insider-specific excess return left over.
+
+The sell signal's in-sample result is also economically backwards: being long stocks with an active opportunistic sell signal produced a positive in-sample return, when informed insider selling should predict underperformance, not outperformance. Read this way, the reversal to negative in validation is closer to the economically expected sign — a further indication that the in-sample fit was not capturing genuine insider information.
 
 ## Pipeline :
 
-1. transaction_data_cleaning.py — SEC Form 4 raw files, nettoyage et construction de la base de transactions
-2. snp500_survivor_free.py — Constituants historiques du S&P 500, reconstruction de l'univers point-in-time
-3. fetch_alpaca_data.py — Prix (Alpaca) et actions en circulation (SEC), calcul des capitalisations boursières
-4. signal_builder_insider.py — Transactions, construction des signaux mensuels routine/opportunistic
-5. build_portfolio.py — Signaux, construction des portefeuilles, IC, alpha, DSR, turnover
+1. transaction_data_cleaning.py
+2. snp500_survivor_free.py
+3. fetch_alpaca_data.py
+4. signal_builder_insider.py
+5. build_portfolio.py
 
 ## 1. `transaction_data_cleaning.py` — SEC Form 4 database
 
@@ -112,3 +103,36 @@ Each binary indicator is then extended into rolling lookback variants over 1, 3,
 Portfolios are built as equal-weighted long positions across all tickers with an active signal at a given date, subject to a minimum of five constituents per date to avoid degenerate portfolios built on too few names. The benchmark is a value-weighted portfolio of the full universe, weighted by market capitalization. For every signal and window combination, four metrics are computed. The information coefficient is the cross-sectional Spearman rank correlation between the signal and the forward return at each date, and its stability over time is summarized by the IC information ratio, the mean IC divided by its standard deviation, annualized by the square root of twelve. Alpha and beta are estimated by regressing portfolio returns on benchmark returns with Newey-West standard errors to account for potential autocorrelation in the residuals, with both coefficients and their t-statistics reported. The Sharpe ratio is computed from monthly portfolio returns and annualized. Turnover is computed using the exact two-sided formula, half the sum of absolute weight changes, based on how equal-weight portfolio membership evolves between consecutive rebalancing dates.
 
 The selection protocol follows a strict walk-forward structure. In the in-sample period, from 2016 to 2019, all eight configurations, two signals crossed with four windows, are evaluated, and for each signal the window with the highest IC information ratio is selected. These selected configurations, and only these, are then re-evaluated untouched on the validation period, from 2020 to 2021, and finally on the out-of-sample period, from 2022 to 2026, which was never used in any selection decision. To account for the fact that eight configurations were tested before making a selection, the out-of-sample Sharpe ratio of each selected configuration is assessed using the Deflated Sharpe Ratio of Bailey and López de Prado, which compares the observed Sharpe ratio to the Sharpe ratio that would be expected purely by chance given the number of trials, the sample length, and the skewness and kurtosis of the realized returns. A Deflated Sharpe Ratio below conventional confidence thresholds indicates that the observed performance cannot be distinguished from the noise generated by testing multiple configurations and keeping the best one.
+
+## How to run
+
+Scripts must be run in order (each produces a file consumed by the next):
+
+1. `transaction_data_cleaning.py`
+2. `snp500_survivor_free.py`
+3. `fetch_alpaca_data.py` (requires Alpaca API keys, see `.env.example`)
+4. `signal_builder_insider.py`
+5. `build_portfolio.py`
+   
+## Environment
+
+- Python 3.11
+- Key dependencies: `pandas`, `numpy`, `statsmodels`, `scipy`, `matplotlib`, `alpaca-py`, `python-dotenv`, `openpyxl`
+
+Install with:
+```bash
+pip install -r requirements.txt
+```
+## References
+
+Cohen, L., Malloy, C., & Pomorski, L. (2012). "Decoding Inside Information." *The Journal of Finance*, 67(3), 1009-1043.
+
+Bailey, D. H., & López de Prado, M. (2014). "The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting, and Non-Normality." *Journal of Portfolio Management*, 40(5), 94-107.
+
+## Author
+
+Mathis Grandjean — MSc in Financial Engineering, EDHEC Business School
+
+## License
+
+This project is for educational and portfolio purposes.

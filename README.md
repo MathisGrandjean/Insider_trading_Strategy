@@ -48,7 +48,7 @@ Selection follows a strict walk-forward split to avoid overfitting. All configur
 <img width="1056" height="219" alt="image" src="https://github.com/user-attachments/assets/ecf1055c-a749-42ae-98e2-f8c342420e06" />
 
 
-Full table of all 8 configurations (2 signals × 4 windows: 1, 3, 6, 12 months), with IC, IC-IR, alpha, beta, t-statistics, Sharpe ratio, and number of months.
+Full table of all 8 configurations (2 signals × 4 windows: 1, 3, 6, 12 months), with IC-IR, alpha, beta, t-statistics, Sharpe ratio, and number of months.
 
 ### Validation (2020-2021)
 

@@ -31,25 +31,35 @@ Number of tickers with an active opportunistic signal each month; the sell signa
 
 *(Note: the two panels above are described only for the opportunistic signal, since that is the one this study evaluates — see next sections. Routine signals were computed but not carried into the selection protocol.)*
 
+## Methodology
+
+Insiders are classified as routine or opportunistic based on their trading history: for each insider and each year, the set of calendar months in which they filed a transaction is compared against the same set for each of the three preceding years. If that pattern repeats (the insider tends to trade in the same month every year), they are classified as routine for that year; otherwise, opportunistic. Insiders with fewer than three years of history are excluded rather than classified, and only past years are used, so there is no look-ahead in the labeling itself.
+
+Each classification is turned into a monthly ticker-level signal: for a given lookback window (1, 3, 6, or 12 months), a ticker's signal is active if at least one opportunistic buy (or sell) transaction occurred within that window. Because the underlying panel is a complete monthly grid for every ticker in the universe, these windows correspond directly to calendar months.
+
+Each month, all tickers with an active signal are grouped into an equal-weighted long portfolio, with a minimum of five constituents required to avoid degenerate portfolios. This portfolio is compared against a value-weighted benchmark built from the same universe. Four metrics are computed for every signal and window combination: the information coefficient (cross-sectional Spearman correlation between the signal and the next month's return), its stability over time (IC information ratio), the portfolio's alpha and beta versus the benchmark (via an OLS regression with Newey-West standard errors), and the annualized Sharpe ratio.
+
+Selection follows a strict walk-forward split to avoid overfitting. All configurations are evaluated in-sample (2016-2019), and for each signal the window with the highest IC information ratio is selected. Only these selected configurations are then re-evaluated, untouched, on the validation period (2020-2021) and the out-of-sample period (2022-2026). Finally, the Deflated Sharpe Ratio corrects the out-of-sample Sharpe ratio for the fact that eight configurations were tested before a final choice was made, checking whether the observed performance is distinguishable from what chance alone would produce.
 ## Results
 ---
 
 ### In-sample selection (2016-2019)
 
-<img width="1056" height="219" alt="image" src="https://github.com/user-attachments/assets/8ca4a999-bd21-4192-80ed-668b03030271" />
+<img width="1056" height="219" alt="image" src="https://github.com/user-attachments/assets/ecf1055c-a749-42ae-98e2-f8c342420e06" />
+
 
 Full table of all 8 configurations (2 signals × 4 windows: 1, 3, 6, 12 months), with IC, IC-IR, alpha, beta, t-statistics, Sharpe ratio, and number of months.
 
 ### Validation (2020-2021)
 
-<img width="1064" height="75" alt="image" src="https://github.com/user-attachments/assets/6f1e093b-9443-45ae-a87e-7d61929322a0" />
+<img width="1064" height="75" alt="image" src="https://github.com/user-attachments/assets/7be3b447-06a6-433b-8c4f-b645ddd719fc" />
+
 
 The two selected configurations re-evaluated untouched on the validation window. We keep buying and selling strategies with the highest information coefficent.
 
 ### Out-of-sample (2022-2026)
 
-<img width="784" height="75" alt="image" src="https://github.com/user-attachments/assets/fdecbb12-ea81-40a0-98f9-9e3a54d4e69d" />
-
+<img width="784" height="75" alt="image" src="https://github.com/user-attachments/assets/318e8100-f432-4610-aec7-38aef83ef1bf" />
 
 
 The two selected configurations evaluated on data never used in selection.
@@ -69,41 +79,21 @@ Both selected configurations fail the walk-forward test. In-sample, opportunisti
 Out-of-sample, neither alpha is significant (t-alpha of -1.17 and -1.12), while beta is close to 1 for both portfolios (1.00 and 0.98, highly significant) — the strategies mostly replicate market exposure, with no distinguishable insider-specific excess return left over.
 
 The sell signal's in-sample result is also economically backwards: being long stocks with an active opportunistic sell signal produced a positive in-sample return, when informed insider selling should predict underperformance, not outperformance. Read this way, the reversal to negative in validation is closer to the economically expected sign — a further indication that the in-sample fit was not capturing genuine insider information.
+### Limitations and extensions
 
-## Pipeline :
+**Limitations:**
+- Universe entry/exit dates depend on snapshot frequency, not official index-committee dates.
+- Sector labels for delisted tickers are backfilled from current data (yfinance), not their true historical classification.
+- Market cap is only as fresh as quarterly shares-outstanding filings, forward-filled in between.
+- Insider transaction data is collected from quarterly SEC bulk dumps, not a live feed.
+- Restricting to the S&P 500 likely works against finding a signal, since information asymmetry should be weaker in heavily analyst-covered large caps.
 
-1. transaction_data_cleaning.py
-2. snp500_survivor_free.py
-3. fetch_alpaca_data.py
-4. signal_builder_insider.py
-5. build_portfolio.py
-
-## 1. `transaction_data_cleaning.py` — SEC Form 4 database
-
-This script loads the quarterly SEC insider transaction dumps (`SUBMISSION.tsv`, `REPORTINGOWNER.tsv`, `NONDERIV_TRANS.tsv`) and merges them on the accession number that links a filing to its submitter, its reporting owner, and its individual transaction lines. Only open-market purchases and sales are kept (`trans_code` in {P, S}), and only original Form 4 filings (`document_type == '4'`) are retained, excluding 4/A amendments so that a corrected filing does not create a duplicate transaction. Column names are standardized, all relevant dates are parsed, net shares are computed with the correct sign depending on whether the transaction was an acquisition or a disposition, and exact duplicate rows are dropped.
-
-## 2. `snp500_survivor_free.py` — point-in-time universe
-
-To avoid survivorship bias, the S&P 500 universe is reconstructed dynamically rather than taken from the current constituent list. Historical constituent snapshots going back to 2013 are used to infer, for each ticker, an entry date (its first observed appearance) and an exit date (its last observed appearance, left open-ended if the ticker is still a current member). For tickers that have since been delisted or removed and are therefore missing from the current reference file, identifiers (CIK, company name) are recovered from SEC EDGAR and sector classifications from yfinance; sector labels are then harmonized to standard GICS naming so that both current and historical constituents share a consistent taxonomy. The resulting table, one row per ticker with its entry and exit dates, sector, and CIK, is the basis for building the monthly point-in-time universe used everywhere downstream.
-
-## 3. `fetch_alpaca_data.py` — prices and market capitalization
-
-Monthly close prices for every ticker ever present in the universe are downloaded through the Alpaca API, fully adjusted for splits and dividends. Shares outstanding are retrieved separately from SEC XBRL company facts, specifically the `EntityCommonStockSharesOutstanding` tag reported in 10-K and 10-Q filings, then resampled to month-end and forward-filled between reporting dates since shares outstanding are only disclosed periodically. Market capitalization is obtained as adjusted price times shares outstanding, with the CIK-to-ticker mapping applied so the final table can be merged with the rest of the pipeline on ticker and month.
-
-## 4. `signal_builder_insider.py` — routine vs opportunistic classification
-
-The signal construction is restricted to insiders classified as Officers or Directors, with transactions filtered to valid prices, positive share counts, and correctly cleaned tickers. The core of this script is the routine versus opportunistic classification, built following the Cohen, Malloy and Pomorski methodology: for each insider and each calendar year, the set of calendar months in which that insider filed a transaction is computed for each of the three preceding years. If the intersection of these three monthly sets is non-empty, meaning the insider tends to trade in the same month every year, they are classified as routine for the current year; otherwise they are classified as opportunistic. Insiders with fewer than three years of trading history are excluded rather than classified, since there is not enough information to establish a pattern. Critically, the current year is never used in its own classification, so there is no look-ahead in the labeling itself. Once classified, transactions are aggregated by ticker, month, and signal type (opportunistic buy, opportunistic sell, routine buy, routine sell), producing both a binary indicator (whether at least one transaction of that type occurred in the month) and a log-count intensity for each combination.
-
-## 5. `build_portfolio.py` — portfolio construction and validation protocol
-
-The monthly point-in-time universe is first merged with the signal table, with missing values filled as zero to represent the absence of insider activity, and then merged with forward returns and market capitalization. Forward returns are computed by shifting the return series back by one month, so that the signal observed at month M is evaluated against the return realized over month M+1, not the return that produced the signal itself. The signal itself is built strictly from the filing date at which the transaction became public, rather than the transaction date, so that no information is used before it could actually have been observed by an investor. Market capitalization values below 100 million dollars are treated as missing to exclude illiquid micro-caps from the benchmark.
-
-Each binary indicator is then extended into rolling lookback variants over 1, 3, 6, and 12 months per ticker, where the signal is considered active if at least one relevant insider transaction occurred at any point within that lookback window. Because the merged panel forms a complete monthly grid for every ticker present in the universe, these lookback windows correspond directly to calendar months rather than to a fixed number of irregularly spaced observations.
-
-Portfolios are built as equal-weighted long positions across all tickers with an active signal at a given date, subject to a minimum of five constituents per date to avoid degenerate portfolios built on too few names. The benchmark is a value-weighted portfolio of the full universe, weighted by market capitalization. For every signal and window combination, four metrics are computed. The information coefficient is the cross-sectional Spearman rank correlation between the signal and the forward return at each date, and its stability over time is summarized by the IC information ratio, the mean IC divided by its standard deviation, annualized by the square root of twelve. Alpha and beta are estimated by regressing portfolio returns on benchmark returns with Newey-West standard errors to account for potential autocorrelation in the residuals, with both coefficients and their t-statistics reported. The Sharpe ratio is computed from monthly portfolio returns and annualized. Turnover is computed using the exact two-sided formula, half the sum of absolute weight changes, based on how equal-weight portfolio membership evolves between consecutive rebalancing dates.
-
-The selection protocol follows a strict walk-forward structure. In the in-sample period, from 2016 to 2019, all eight configurations, two signals crossed with four windows, are evaluated, and for each signal the window with the highest IC information ratio is selected. These selected configurations, and only these, are then re-evaluated untouched on the validation period, from 2020 to 2021, and finally on the out-of-sample period, from 2022 to 2026, which was never used in any selection decision. To account for the fact that eight configurations were tested before making a selection, the out-of-sample Sharpe ratio of each selected configuration is assessed using the Deflated Sharpe Ratio of Bailey and López de Prado, which compares the observed Sharpe ratio to the Sharpe ratio that would be expected purely by chance given the number of trials, the sample length, and the skewness and kurtosis of the realized returns. A Deflated Sharpe Ratio below conventional confidence thresholds indicates that the observed performance cannot be distinguished from the noise generated by testing multiple configurations and keeping the best one.
-
+**Extensions:**
+- Extend to small/micro caps, where insider information advantage is plausibly stronger.
+- Use dollar volume traded instead of a binary indicator, to capture transaction size.
+- Use transaction size relative to the insider's total holdings, to capture conviction.
+- Combine classification, intensity, dollar size, and conviction into a single composite score.
+  
 ## How to run
 
 Scripts must be run in order (each produces a file consumed by the next):

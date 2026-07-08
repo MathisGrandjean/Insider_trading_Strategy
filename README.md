@@ -110,14 +110,14 @@ Scripts must be run in order (each produces a file consumed by the next):
 
 1. `transaction_data_cleaning.py`
 2. `snp500_survivor_free.py`
-3. `fetch_alpaca_data.py` (requires Alpaca API keys, see `.env.example`)
+3. `fetch_alpaca_data.py`
 4. `signal_builder_insider.py`
 5. `build_portfolio.py`
    
 ## Environment
 
 - Python 3.11
-- Key dependencies: `pandas`, `numpy`, `statsmodels`, `scipy`, `matplotlib`, `alpaca-py`, `python-dotenv`, `openpyxl`
+- Key dependencies: `pandas`, `numpy`, `statsmodels`, `scipy`, `matplotlib`, `alpaca-py`, `python-dotenv`
 
 Install with:
 ```bash

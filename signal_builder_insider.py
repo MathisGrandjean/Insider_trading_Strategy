@@ -61,16 +61,6 @@ owner_months = (
     .reset_index(drop=True)
 )
 def classify_owners(owner_months: pd.DataFrame) -> pd.DataFrame:
-    """
-    Pour chaque (owner_cik, year) :
-      → prend les 3 années précédentes disponibles
-      → intersection des frozensets de mois
-        non-vide → 'routine'
-        vide     → 'opportunistic'
-      → < 3 ans d'historique → 'insufficient_history'
- 
-    Pas de leakage : l'année courante n'est JAMAIS utilisée pour classer.
-    """
     results = []
  
     for owner_cik, group in owner_months.groupby('owner_cik'):

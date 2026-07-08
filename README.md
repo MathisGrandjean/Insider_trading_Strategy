@@ -1,6 +1,82 @@
 # Insider Trading Signal — Replication & Robustness Study (Cohen, Malloy & Pomorski, 2012)
 
 Systematic evaluation of insider trading signals ("routine" vs "opportunistic" insiders) on a survivorship-bias-free S&P 500 universe, 2016–2026, with a full in-sample / validation / out-of-sample protocol and multiple-testing correction.
+## Results
+
+### Universe overview
+
+The point-in-time universe contains 613 unique tickers over 2016-2026, of which 503 are currently active constituents. 190 tickers entered the S&P 500 and 110 exited (delisted or removed) since 2016, giving a realistic sense of the churn a survivorship-bias-free study needs to capture. The universe spans 12 GICS sectors, led by Industrials (93 tickers), Financials (91), and Information Technology (83), with Communication Services (25) and a single unclassified ticker at the low end.
+
+<img width="1210" height="495" alt="fig_universe_size" src="https://github.com/user-attachments/assets/72efc983-914b-4299-b35d-bd8c0427b946" />
+Universe size grows steadily from about 405 tickers in early 2016 to close to 500 by 2026, consistent with the gradual index additions net of removals.
+
+<img width="990" height="550" alt="fig_sector_breakdown" src="https://github.com/user-attachments/assets/9e1668bc-08d9-41d5-8a3d-d7c03bd009c7" />
+
+Sector composition, unique tickers per GICS sector over the full period.
+
+### Raw insider transaction activity
+
+After restricting the SEC Form 4 database to tickers that were ever part of the survivor-free universe, the sample contains 362,675 raw transactions from 15,069 unique insiders across 606 tickers, spanning January 2013 to March 2026. Sell transactions dominate heavily (330,544, or roughly 91% of the sample) relative to buy transactions (32,131) — an expected asymmetry, since insiders sell routinely for diversification and liquidity reasons far more often than they buy, which is precisely the motivation behind isolating the *opportunistic* subset rather than treating all transactions as informative.
+
+<img width="1210" height="495" alt="fig_transactions_per_year" src="https://github.com/user-attachments/assets/e8b1405a-7bf2-437f-b333-10792b229ee6" />
+Annual transaction counts, split buy/sell. Both series broadly track market activity, with visible peaks in 2021 and 2024-2025.
+
+### Signal coverage
+
+After classification into routine and opportunistic insiders and aggregation to the ticker-month level, the signal panel covers 20,277 ticker-month observations across 593 tickers. The opportunistic sell signal is active in 70.6% of the panel, opportunistic buy in only 6.6% — again reflecting the underlying asymmetry in raw transactions. Routine sell covers 42.2% of the panel, routine buy just 2.0%.
+
+<img width="1210" height="495" alt="fig_signal_activity_over_time" src="https://github.com/user-attachments/assets/7dbdc570-d019-4f4e-b9ae-3cae5074874d" />
+Number of tickers with an active opportunistic signal each month; the sell signal (red) fluctuates between roughly 50 and 200 tickers, while the buy signal (green) stays consistently below 30, confirming that opportunistic buying is a comparatively rare, high-conviction event relative to opportunistic selling.
+
+*(Note: the two panels above are described only for the opportunistic signal, since that is the one this study evaluates — see next sections. Routine signals were computed but not carried into the selection protocol.)*
+
+---
+
+### In-sample selection (2016-2019)
+
+
+ IC	t_alpha	sharpe	n_months	alpha	beta	t_beta	signal	window (in month)
+0.45	0.05	1.24	27.00	0.00	1.13	13.21	opportunistic buy	1
+0.45	2.03	1.18	46.00	0.01	0.24	0.89	opportunistic buy	3
+0.14	1.51	0.96	47.00	0.01	0.32	1.22	opportunistic buy	6
+-0.01	1.58	1.00	47.00	0.01	0.22	0.76	opportunistic buy	12
+-0.10	2.08	1.27	48.00	0.01	0.24	1.00	opportunistic sell	1
+0.10	2.11	1.24	48.00	0.01	0.28	1.16	opportunistic sell	3
+0.35	2.12	1.24	48.00	0.01	0.29	1.27	opportunistic sell	6
+0.30	1.98	1.18	48.00	0.01	0.30	1.25	opportunistic sell	12
+<img width="1056" height="219" alt="image" src="https://github.com/user-attachments/assets/8ca4a999-bd21-4192-80ed-668b03030271" />
+
+Full table of all 8 configurations (2 signals × 4 windows: 1, 3, 6, 12 months), with IC, IC-IR, alpha, beta, t-statistics, Sharpe ratio, and number of months.
+
+### Validation (2020-2021)
+
+IC	t_alpha	sharpe	n_months	alpha	beta	t_beta	signal	window (in month)
+-0.36	-0.58	0.42	20.00	0.00	0.75	3.73	opportunistic buy	1
+-0.43	0.27	0.84	24.00	0.00	0.58	4.43	opportunistic sell	6
+<img width="1064" height="75" alt="image" src="https://github.com/user-attachments/assets/6f1e093b-9443-45ae-a87e-7d61929322a0" />
+
+The two selected configurations re-evaluated untouched on the validation window.
+
+### Out-of-sample (2022-2026)
+
+ic_ir	t_alpha	sharpe	n_months	alpha	beta	t_beta	signal	window
+-0.45	-1.17	0.14	41.00	-0.01	1.00	11.20	opportunistic buy	1
+-0.40	-1.12	0.58	51.00	0.00	0.98	28.28	opportunistic sell	6
+<img width="784" height="75" alt="image" src="https://github.com/user-attachments/assets/f4d60cfd-8f0d-41a3-90ed-8bbdb25ab58f" />
+
+
+The two selected configurations evaluated on data never used in selection.
+
+<img width="1857" height="849" alt="image" src="https://github.com/user-attachments/assets/971a8226-4105-45c2-91da-f7ab484d0976" />
+
+<img width="1855" height="849" alt="image" src="https://github.com/user-attachments/assets/116967ea-724b-41e5-aada-3ccb03dc3304" />
+
+### Multiple-testing correction
+
+Deflated Sharpe Ratio (n_trials = 8, accounting for sample length and return skew/kurtosis):
+- Opportunistic sell: DSR = 0.38
+
+**[One paragraph interpreting whether OOS performance is consistent in sign and magnitude with IS, and whether the DSR indicates the observed Sharpe is distinguishable from selection noise.]**
 
 ## Pipeline :
 

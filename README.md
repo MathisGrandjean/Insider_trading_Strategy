@@ -72,14 +72,14 @@ The two selected configurations evaluated on data never used in selection.
 Deflated Sharpe Ratio (n_trials = 8, accounting for sample length and return skew/kurtosis):
 - Opportunistic sell: DSR = 0.38
 
-## Interpretation
+### Interpretation
 
 Both selected configurations fail the walk-forward test. In-sample, opportunistic sell (window = 6 months) looks attractive: IC = 0.35, t(alpha) = 2.12, Sharpe = 1.24. In validation the IC flips sign to -0.43 and stays negative out-of-sample (IC-IR = -0.40). Opportunistic buy shows the same pattern (IC = 0.45 in-sample, then -0.36 and -0.45). An immediate sign reversal like this is a stronger warning than a simple decline — it points to an in-sample fit driven by noise rather than a real, if weak, effect.
 
 Out-of-sample, neither alpha is significant (t-alpha of -1.17 and -1.12), while beta is close to 1 for both portfolios (1.00 and 0.98, highly significant) — the strategies mostly replicate market exposure, with no distinguishable insider-specific excess return left over.
 
 The sell signal's in-sample result is also economically backwards: being long stocks with an active opportunistic sell signal produced a positive in-sample return, when informed insider selling should predict underperformance, not outperformance. Read this way, the reversal to negative in validation is closer to the economically expected sign — a further indication that the in-sample fit was not capturing genuine insider information.
-### Limitations and extensions
+## Limitations and extensions
 
 **Limitations:**
 - Universe entry/exit dates depend on snapshot frequency, not official index-committee dates.

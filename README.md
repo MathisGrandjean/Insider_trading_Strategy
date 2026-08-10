@@ -79,11 +79,18 @@ Deflated Sharpe Ratio (n_trials = 8, accounting for sample length and return ske
 
 ### Interpretation
 
-Both selected configurations fail the walk-forward test. In-sample, opportunistic sell (window = 6 months) looks attractive: IC = 0.35, t(alpha) = 2.12, Sharpe = 1.24. In validation the IC flips sign to -0.43 and stays negative out-of-sample (IC-IR = -0.40). Opportunistic buy shows the same pattern (IC = 0.45 in-sample, then -0.36 and -0.45). An immediate sign reversal like this is a stronger warning than a simple decline — it points to an in-sample fit driven by noise rather than a real, if weak, effect.
+Neither configuration survives the walk-forward test.
 
-Out-of-sample, neither alpha is significant (t-alpha of -1.17 and -1.12), while beta is close to 1 for both portfolios (1.00 and 0.98, highly significant) — the strategies mostly replicate market exposure, with no distinguishable insider-specific excess return left over.
+In-sample, both look promising: the buy leg (window = 3 months) shows t(alpha) = 2.03 with a low market beta of 0.24, and the short leg on the sell signal (window = 6 months) shows a significant t(alpha) = -2.12 — but with the wrong sign. A short position losing money significantly is the opposite of an informed-selling signal.
 
-The sell signal's in-sample result is also economically backwards: being long stocks with an active opportunistic sell signal produced a positive in-sample return, when informed insider selling should predict underperformance, not outperformance. Read this way, the reversal to negative in validation is closer to the economically expected sign — a further indication that the in-sample fit was not capturing genuine insider information.
+Both fade immediately in validation. The buy leg's alpha drops to insignificance (t = 0.09) while its beta rises to 0.64; the short leg is insignificant too (t = -0.27), with a Sharpe of -0.84. Neither retains the in-sample result.
+
+Out-of-sample, the pattern is the same. The buy leg's alpha is negative and insignificant (t = -1.03) while its beta jumps to 1.11 (t = 13.2). The cumulative-return chart is misleading here: the portfolio beats the benchmark, but that gap comes from holding more market risk through a rising market, not from picking better stocks. The short leg's alpha flips marginally positive but stays insignificant (t = 1.12), with beta at -0.98 (t = -28.3) — essentially pure inverse-market exposure with no insider information left.
+
+The IC-IR reversal reinforces this: positive in-sample for both legs (0.45 and 0.35), then negative in both validation and out-of-sample (-0.06 and -0.43, then -0.11 and -0.40). A weak but real effect would fade; an effect that changes direction points to noise. The Deflated Sharpe Ratio confirms it: 0.31 for the buy leg and 0.004 for the short leg, both far below the 0.95 threshold needed to distinguish real performance from what testing eight configurations produces by chance.
+
+The result is a clean negative one: on S&P 500 constituents over 2016-2026, the routine/opportunistic classification does not produce a risk-adjusted edge that survives out-of-sample testing and multiple-testing correction.
+
 ## Limitations and extensions
 
 **Limitations:**
@@ -92,12 +99,12 @@ The sell signal's in-sample result is also economically backwards: being long st
 - Market cap is only as fresh as quarterly shares-outstanding filings, forward-filled in between.
 - Insider transaction data is collected from quarterly SEC bulk dumps, not a live feed.
 - Restricting to the S&P 500 likely works against finding a signal, since information asymmetry should be weaker in heavily analyst-covered large caps.
+- Short-side results ignore borrow costs and stock-lending availability, which would further reduce the short leg's realisable return.
 
 **Extensions:**
 - Extend to small/micro caps, where insider information advantage is plausibly stronger.
 - Use dollar volume traded instead of a binary indicator, to capture transaction size.
 - Use transaction size relative to the insider's total holdings, to capture conviction.
-- Combine classification, intensity, dollar size, and conviction into a single composite score.
   
 ## How to run
 

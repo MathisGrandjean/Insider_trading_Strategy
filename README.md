@@ -1,4 +1,4 @@
-# Insider Trading Signal — Replication & Robustness Study (Cohen, Malloy & Pomorski, 2012)
+# Insider Trading Signal
 
 The strategy classifies corporate insiders (Officers and Directors) as "routine" or "opportunistic" based on whether they trade in the same calendar month every year, following Cohen, Malloy and Pomorski (2012): routine insiders trade on a predictable schedule and are assumed to carry little information, while opportunistic insiders trade at irregular times and are assumed more likely to act on private information. For each month, tickers with at least one opportunistic buy (or sell) filing within a given lookback window are grouped into an equal-weighted long portfolio, tested against a value-weighted S&P 500 benchmark. The idea is simple: if opportunistic insider buying (selling) carries information, the resulting portfolio should show a positive (negative) forward return beyond what the benchmark already captures.
 

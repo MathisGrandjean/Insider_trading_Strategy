@@ -75,9 +75,11 @@ def vw_benchmark(df):
     return d.groupby('filing_date')['w_ret'].sum() / d.groupby('filing_date')['market_cap'].sum()
 
 benchmark = vw_benchmark(df_full)
-
 #a portfolio must contain at least 5 stocks
 MIN_N = 5
+
+# maps each signal to whether it should be traded as a SHORT position
+SHORT_SIGNALS = {'ind_opp_buy': False, 'ind_opp_sell': True}
 
 #compute an ols with Y = portfolio strategy return , X = market return 
 def ols_vs_benchmark(port_ret, bench_ret, label, hac_lags=3):
@@ -106,15 +108,17 @@ def deflated_sharpe_ratio(observed_sharpe_ann, n_trials, n_obs, skew=0, kurt=3):
     return norm.cdf((sr_m - expected_max_sr) / sr_std)
 
 #calculate the return of portfolio EW with buying signal
-def build_port_return(df, indicator_col, period_mask=None, min_n=MIN_N):
+#short=True inverts the sign, so ret always represents the P&L actually earned
+def build_port_return(df, indicator_col, period_mask=None, min_n=MIN_N, short=False):
     sub = df if period_mask is None else df[period_mask]
     sub = sub.dropna(subset=[indicator_col, 'fwd_return'])
     n_series = sub[sub[indicator_col] == 1].groupby('filing_date').size()
     valid = n_series[n_series >= min_n].index
-    return sub[sub[indicator_col] == 1].groupby('filing_date')['fwd_return'].mean().reindex(valid).dropna()
+    ret = sub[sub[indicator_col] == 1].groupby('filing_date')['fwd_return'].mean().reindex(valid).dropna()
+    return -ret if short else ret
 
 #evaluate each window of the lookback period and calculate IC and ols compare to return and shapre ratio
-def evaluate_window(df, indicator_col, period_mask, min_n=MIN_N):
+def evaluate_window(df, indicator_col, period_mask, min_n=MIN_N, short=False):
     #for each strategy with a different windown we compte the IC
     sub = df[period_mask].dropna(subset=[indicator_col, 'fwd_return'])
     ic_df = compute_ic(sub, indicator_col)
@@ -125,6 +129,8 @@ def evaluate_window(df, indicator_col, period_mask, min_n=MIN_N):
     
     #we calcule the return of the strategy, of the benchmark and the sharpe ratio
     ret = sub[sub[indicator_col]==1].groupby('filing_date')['fwd_return'].mean().reindex(valid).dropna()
+    if short:
+        ret = -ret
     sharpe = ret.mean()/ret.std()*np.sqrt(12)
     bench_sub = benchmark.reindex(ret.index).dropna()
     common_idx = ret.index.intersection(bench_sub.index)
@@ -181,21 +187,20 @@ oos_mask = df_full['filing_date'] > VAL_END
 is_results = []
 for sig in ['ind_opp_buy', 'ind_opp_sell']:
     for w in WINDOWS:
-        r = evaluate_window(df_full, f'{sig}_w{w}', is_mask)
+        r = evaluate_window(df_full, f'{sig}_w{w}', is_mask, short=SHORT_SIGNALS[sig])
         r.update({'signal': sig, 'window': w})
         is_results.append(r)
 
 df_is_results = pd.DataFrame(is_results)
 df_is_results.to_excel(RESULTS_DIR / "results_IS.xlsx")
 
-#we consider the best window if it has the best information coefficient for buying and selling strategy so we keep two strategies
-best_per_signal = df_is_results.loc[df_is_results.groupby('signal')['ic_ir'].idxmax()]
+best_per_signal = df_is_results.loc[df_is_results.groupby('signal')['t_alpha'].apply(lambda x: x.abs().idxmax())]
 
 #we evaluate our strategy in the validation period for the best buying and sellin strategy
 val_results = []
 for _, row in best_per_signal.iterrows():
     col = f"{row['signal']}_w{int(row['window'])}"
-    r = evaluate_window(df_full, col, val_mask)
+    r = evaluate_window(df_full, col, val_mask, short=SHORT_SIGNALS[row['signal']])
     r.update({'signal': row['signal'], 'window': row['window']})
     val_results.append(r)
 
@@ -206,7 +211,7 @@ df_val_results.to_excel(RESULTS_DIR / "results_validation.xlsx")
 oos_results = []
 for _, row in best_per_signal.iterrows():
     col = f"{row['signal']}_w{int(row['window'])}"
-    r = evaluate_window(df_full, col, oos_mask)
+    r = evaluate_window(df_full, col, oos_mask, short=SHORT_SIGNALS[row['signal']])
     r.update({'signal': row['signal'], 'window': row['window']})
     oos_results.append(r)
 
@@ -222,18 +227,20 @@ for _, row in df_oos_results.iterrows():
 
 best_signal_row = df_oos_results.loc[df_oos_results['sharpe'].idxmax()]
 best_col = f"{best_signal_row['signal']}_w{int(best_signal_row['window'])}"
+best_short = SHORT_SIGNALS[best_signal_row['signal']]
 best_dsr = dsr_results.get(best_signal_row['signal'], np.nan)
 
 #we compute the turnover cost and portfolio return of our best strategy
 turnover_best = compute_weight_turnover(df_full[oos_mask], best_col)
-port_ret_best_oos = build_port_return(df_full, best_col, period_mask=oos_mask)
+port_ret_best_oos = build_port_return(df_full, best_col, period_mask=oos_mask, short=best_short)
 
 print(f"Turnover moyen (OOS) : {turnover_best['turnover'].mean():.1%}/mois")
 
 #print a graphique that compare the return of the best strategy and the benchmark
 for _, row in best_per_signal.iterrows():
     col = f"{row['signal']}_w{int(row['window'])}"
-    port_ret_full = build_port_return(df_full, col)
+    is_short = SHORT_SIGNALS[row['signal']]
+    port_ret_full = build_port_return(df_full, col, short=is_short)
     common_full = port_ret_full.index.intersection(benchmark.dropna().index)
 
     oos_row = df_oos_results[(df_oos_results['signal']==row['signal']) &
@@ -243,13 +250,13 @@ for _, row in best_per_signal.iterrows():
     cum_port  = (1 + port_ret_full.loc[common_full]).cumprod()
     cum_bench = (1 + benchmark.loc[common_full]).cumprod()
 
+    label_side = 'SHORT' if is_short else 'LONG'
     fig, ax = plt.subplots(figsize=(13, 6))
-    cum_port.plot(ax=ax, label=f"{row['signal']} w={int(row['window'])}m", color='blue', linewidth=1.8)
+    cum_port.plot(ax=ax, label=f"{row['signal']} ({label_side}) w={int(row['window'])}m", color='blue', linewidth=1.8)
     cum_bench.plot(ax=ax, label='Benchmark VW', color='grey', linewidth=1.8)
     ax.axvspan(cum_port.index.min(), IS_END, alpha=0.08, color='red', label='IS (sélection)')
     ax.axhline(1, color='black', linestyle='--', linewidth=0.5)
-    ax.set_title(f"{row['signal']} (w={int(row['window'])}m) return vs market porfolio return")
+    ax.set_title(f"{row['signal']} ({label_side}, w={int(row['window'])}m) return vs market porfolio return")
     ax.legend()
     plt.tight_layout()
     plt.show()
-    

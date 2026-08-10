@@ -45,32 +45,37 @@ Selection follows a strict walk-forward split to avoid overfitting. All configur
 
 ### In-sample selection (2016-2019)
 
-<img width="1056" height="219" alt="image" src="https://github.com/user-attachments/assets/ecf1055c-a749-42ae-98e2-f8c342420e06" />
+<img width="887" height="217" alt="image" src="https://github.com/user-attachments/assets/ebfffaf1-ca7f-4f4c-b2db-7835b8de5f25" />
 
 
 Full table of all 8 configurations (2 signals × 4 windows: 1, 3, 6, 12 months), with IC-IR, alpha, beta, t-statistics, Sharpe ratio, and number of months.
 
 ### Validation (2020-2021)
 
-<img width="1064" height="75" alt="image" src="https://github.com/user-attachments/assets/7be3b447-06a6-433b-8c4f-b645ddd719fc" />
+
+<img width="847" height="73" alt="image" src="https://github.com/user-attachments/assets/ceee70f3-7515-4b1c-8232-bd17b7907219" />
 
 
 The two selected configurations re-evaluated untouched on the validation window. We keep buying and selling strategies with the highest information coefficent.
 
 ### Out-of-sample (2022-2026)
 
-<img width="784" height="75" alt="image" src="https://github.com/user-attachments/assets/318e8100-f432-4610-aec7-38aef83ef1bf" />
+
+<img width="847" height="73" alt="image" src="https://github.com/user-attachments/assets/a919ce5d-a2ce-4e64-9d2f-a9486d2103bb" />
 
 
 The two selected configurations evaluated on data never used in selection.
 
+<img width="1418" height="648" alt="image" src="https://github.com/user-attachments/assets/3584555c-f0cc-4b37-8beb-95be03ed9d9d" />
 
-<img width="1855" height="849" alt="image" src="https://github.com/user-attachments/assets/116967ea-724b-41e5-aada-3ccb03dc3304" />
+<img width="1417" height="649" alt="image" src="https://github.com/user-attachments/assets/26f6d03b-8fa8-4c05-9474-5e28af8b72eb" />
+
 
 ### Multiple-testing correction
 
 Deflated Sharpe Ratio (n_trials = 8, accounting for sample length and return skew/kurtosis):
-- Opportunistic sell: DSR = 0.38
+- Opportunistic buy: DSR = 0.31
+- Opportunistic sell: DSR = 0.004
 
 ### Interpretation
 
